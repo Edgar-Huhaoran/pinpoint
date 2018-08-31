@@ -46,9 +46,18 @@ public class TomcatPlugin implements ProfilerPlugin, TransformTemplateAware {
      * 
      * @see com.navercorp.pinpoint.bootstrap.plugin.ProfilerPlugin#setUp(com.navercorp.pinpoint.bootstrap.plugin.ProfilerPluginSetupContext)
      */
+
+    /**
+     * Tomcat Plugin注册
+     *
+     * @param context
+     */
     @Override
     public void setup(ProfilerPluginSetupContext context) {
 
+        /**
+         * 根据pinpoint.config配置信息配置Tomcat Plugin
+         */
         final TomcatConfig config = new TomcatConfig(context.getConfig());
         if (logger.isInfoEnabled()) {
             logger.info("TomcatPlugin config:{}", config);
@@ -58,12 +67,17 @@ public class TomcatPlugin implements ProfilerPlugin, TransformTemplateAware {
             return;
         }
 
+        /**
+         * 获取Tomcat的启动引导类
+         */
         TomcatDetector tomcatDetector = new TomcatDetector(config.getTomcatBootstrapMains());
         context.addApplicationTypeDetector(tomcatDetector);
 
+
+        // 是否需要添加字节码转换器
         if (shouldAddTransformers(config)) {
             logger.info("Adding Tomcat transformers");
-            addTransformers(config);
+            addTransformers(config); // 添加字节码转化器
         } else {
             logger.info("Not adding Tomcat transfomers");
         }
@@ -95,12 +109,17 @@ public class TomcatPlugin implements ProfilerPlugin, TransformTemplateAware {
         addAsyncContextImpl();
     }
 
+    /**
+     * org.apache.catalina.connector.Request字节码转换
+     */
     private void addRequestEditor() {
         transformTemplate.transform("org.apache.catalina.connector.Request", new TransformCallback() {
 
             @Override
             public byte[] doInTransform(Instrumentor instrumentor, ClassLoader classLoader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classfileBuffer) throws InstrumentException {
                 InstrumentClass target = instrumentor.getInstrumentClass(classLoader, className, classfileBuffer);
+
+                // 在Request类中插入Trace属性用于保存请求的Trace信息
                 target.addField(TomcatConstants.TRACE_ACCESSOR);
                 target.addField(TomcatConstants.ASYNC_ACCESSOR);
 

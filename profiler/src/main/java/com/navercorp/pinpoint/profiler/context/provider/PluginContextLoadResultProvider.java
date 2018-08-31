@@ -62,6 +62,7 @@ public class PluginContextLoadResultProvider implements Provider<PluginContextLo
 
     @Override
     public PluginContextLoadResult get() {
+        // 初始化Plugin
         return new DefaultPluginContextLoadResult(profilerConfig, dynamicTransformTrigger, instrumentEngine, pluginJars);
 
     }

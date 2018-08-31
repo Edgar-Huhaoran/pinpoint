@@ -67,12 +67,13 @@ public class DefaultAgent implements Agent {
         ClassPreLoader.preload();
     }
 
+    // BootStrap实例化Agent用的构造方法
     public DefaultAgent(AgentOption agentOption) {
         this(agentOption, createInterceptorRegistry(agentOption));
     }
 
     public static InterceptorRegistryBinder createInterceptorRegistry(AgentOption agentOption) {
-        final int interceptorSize = getInterceptorSize(agentOption);
+        final int interceptorSize = getInterceptorSize(agentOption); // 获取允许注册的拦截器数量
         return new DefaultInterceptorRegistryBinder(interceptorSize);
     }
 
@@ -106,17 +107,24 @@ public class DefaultAgent implements Agent {
         this.binder = new Slf4jLoggerBinder();
         bindPLoggerFactory(this.binder);
 
+        /**
+         * 绑定默认的拦截注册器
+         */
         this.interceptorRegistryBinder = interceptorRegistryBinder;
         interceptorRegistryBinder.bind();
         this.serviceTypeRegistryService = agentOption.getServiceTypeRegistryService();
 
+        /**
+         * 打印System配置相关的参数
+         */
         dumpSystemProperties();
         dumpConfig(agentOption.getProfilerConfig());
 
-        changeStatus(AgentStatus.INITIALIZING);
+        changeStatus(AgentStatus.INITIALIZING); // 设置当前Agent状态
 
         this.profilerConfig = agentOption.getProfilerConfig();
 
+        // 初始化Agent应用上线文
         this.applicationContext = newApplicationContext(agentOption, interceptorRegistryBinder);
 
         
@@ -127,6 +135,7 @@ public class DefaultAgent implements Agent {
         Assert.requireNonNull(agentOption, "agentOption must not be null");
         ProfilerConfig profilerConfig = Assert.requireNonNull(agentOption.getProfilerConfig(), "profilerConfig must not be null");
 
+        // 如果配置文件中有配置ModuleFactory则使用配置文件中的，如果没有则使用Pinpoint代码中已经提供的
         DefaultModuleFactoryProvider moduleFactoryProvider = new DefaultModuleFactoryProvider(profilerConfig.getInjectionModuleFactoryClazzName());
         return new DefaultApplicationContext(agentOption, interceptorRegistryBinder, moduleFactoryProvider);
     }
@@ -170,8 +179,8 @@ public class DefaultAgent implements Agent {
     
     @Override
     public void start() {
-        synchronized (agentStatusLock) {
-            if (this.agentStatus == AgentStatus.INITIALIZING) {
+        synchronized (agentStatusLock) { // 避免并发启动
+            if (this.agentStatus == AgentStatus.INITIALIZING) { // 修改Agent状态
                 changeStatus(AgentStatus.RUNNING);
             } else {
                 logger.warn("Agent already started.");

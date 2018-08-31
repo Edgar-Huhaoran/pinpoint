@@ -81,16 +81,24 @@ class PinpointStarter {
     }
 
     boolean start() {
+        /**
+         * 当前JVM的ID信息获取
+         */
         final IdValidator idValidator = new IdValidator();
-        final String agentId = idValidator.getAgentId();
+        final String agentId = idValidator.getAgentId(); // 通过JVM启动时配置的参数，获取当前JVM的agentId
         if (agentId == null) {
             return false;
         }
-        final String applicationName = idValidator.getApplicationName();
+        final String applicationName = idValidator.getApplicationName(); // 通过JVM启动时配置的参数，获取当前JVM的applicationName
         if (applicationName == null) {
             return false;
         }
 
+
+        /**
+         * 参数处理、对象初始化等工作
+         */
+        // 获取plugin目录下的.jar文件，也就是所有的plugin的jar包地址
         URL[] pluginJars = classPathResolver.resolvePlugins();
 
         // TODO using PLogger instead of CommonLogger
@@ -99,31 +107,46 @@ class PinpointStarter {
         ServiceTypeRegistryService serviceTypeRegistryService = new DefaultServiceTypeRegistryService(typeLoaderService, loggerFactory);
         AnnotationKeyRegistryService annotationKeyRegistryService = new DefaultAnnotationKeyRegistryService(typeLoaderService, loggerFactory);
 
+        // 获取pinpoint.config文件
         String configPath = getConfigPath(classPathResolver);
         if (configPath == null) {
             return false;
         }
 
+        // 将当前文件所在目录下的log文件作为日志输出文件，并且将其写入到System参数中
         // set the path of log file as a system property
         saveLogFilePath(classPathResolver);
 
+        // 将当前pinpoint版本作为参数写入到System参数中
         savePinpointVersion();
 
+
         try {
+            // 通过前面获取的配置地址加载配置信息，后面可以直接通过profilerConfig对象获取agent的配置
             // Is it right to load the configuration in the bootstrap?
             ProfilerConfig profilerConfig = DefaultProfilerConfig.load(configPath);
 
+            /**
+             * 将pinpoint-bootstrap-1.7.3.jar文件、lib目录、boot目录下的jar包交给类加载器，并且指明启动类的类名为DefaultAgent
+             */
             // this is the library list that must be loaded
             List<URL> libUrlList = resolveLib(classPathResolver);
             AgentClassLoader agentClassLoader = new AgentClassLoader(libUrlList.toArray(new URL[libUrlList.size()]));
             final String bootClass = getBootClass();
-            agentClassLoader.setBootClass(bootClass);
+            agentClassLoader.setBootClass(bootClass); // 设置启动类的类名，生产环境下为DefaultAgent
             logger.info("pinpoint agent [" + bootClass + "] starting...");
 
 
+            /**
+             * 启动DefaultAgent
+             */
+            // 封装启动相关的参数对象
             AgentOption option = createAgentOption(agentId, applicationName, profilerConfig, instrumentation, pluginJars, bootstrapJarFile, serviceTypeRegistryService, annotationKeyRegistryService);
+            // 通过类加载器引导类加载并实例化对象
             Agent pinpointAgent = agentClassLoader.boot(option);
+            // 调用start方法将Agent启动工作交给DefaultAgent完成
             pinpointAgent.start();
+            // 注册关闭hook，在当前上下文关闭的时候通知DefaultAgent处理相关资源
             registerShutdownHook(pinpointAgent);
             logger.info("pinpoint agent started normally.");
         } catch (Exception e) {
@@ -192,6 +215,7 @@ class PinpointStarter {
     }
 
     private String getConfigPath(ClassPathResolver classPathResolver) {
+        // 如果系统参数有配置pinpoint.config文件地址则从该地址获取
         final String configName = ProductInfo.NAME + ".config";
         String pinpointConfigFormSystemProperty = systemProperty.getProperty(configName);
         if (pinpointConfigFormSystemProperty != null) {
@@ -199,6 +223,7 @@ class PinpointStarter {
             return pinpointConfigFormSystemProperty;
         }
 
+        // 如果系统中没有配置则从当前jar包所在目录下找pinpoint.config文件
         String classPathAgentConfigPath = classPathResolver.getAgentConfigPath();
         if (classPathAgentConfigPath != null) {
             logger.info("classpath " + configName + " found. " + classPathAgentConfigPath);
@@ -214,7 +239,7 @@ class PinpointStarter {
         // this method may handle only absolute path,  need to handle relative path (./..agentlib/lib)
         String agentJarFullPath = classPathResolver.getAgentJarFullPath();
         String agentLibPath = classPathResolver.getAgentLibPath();
-        List<URL> urlList = resolveLib(classPathResolver.resolveLib());
+        List<URL> urlList = resolveLib(classPathResolver.resolveLib()); // 获取boot目录、lib目录下所有jar、xml、properties文件地址
         String agentConfigPath = classPathResolver.getAgentConfigPath();
 
         if (logger.isInfoEnabled()) {

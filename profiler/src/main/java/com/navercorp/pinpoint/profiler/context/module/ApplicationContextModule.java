@@ -237,6 +237,7 @@ public class ApplicationContextModule extends AbstractModule {
         bind(ResponseTimeCollector.class).to(ReuseResponseTimeCollector.class).in(Scopes.SINGLETON);
         bind(ActiveTraceRepository.class).toProvider(ActiveTraceRepositoryProvider.class).in(Scopes.SINGLETON);
 
+        // Agent Plugin 注册
         bind(PluginContextLoadResult.class).toProvider(PluginContextLoadResultProvider.class).in(Scopes.SINGLETON);
 
         bind(JdbcContext.class).to(DefaultJdbcContext.class).in(Scopes.SINGLETON);
@@ -248,6 +249,7 @@ public class ApplicationContextModule extends AbstractModule {
         bind(ObjectBinderFactory.class).toProvider(ObjectBinderFactoryProvider.class).in(Scopes.SINGLETON);
         bind(ClassFileTransformerDispatcher.class).toProvider(ClassFileTransformerDispatcherProvider.class).in(Scopes.SINGLETON);
         bind(DynamicTransformerRegistry.class).to(DefaultDynamicTransformerRegistry.class).in(Scopes.SINGLETON);
+        // DynamicTransformTrigger 注册
         bind(DynamicTransformTrigger.class).toProvider(DynamicTransformTriggerProvider.class).in(Scopes.SINGLETON);
 //        bind(ClassFileTransformer.class).toProvider(ClassFileTransformerWrapProvider.class).in(Scopes.SINGLETON);
 

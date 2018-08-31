@@ -71,19 +71,26 @@ public class ProfilerPluginLoader {
 
     public List<SetupResult> load(URL[] pluginJars) {
 
+        // 保存plugin注册的结果
         List<SetupResult> pluginContexts = new ArrayList<SetupResult>(pluginJars.length);
 
+        // 依次遍历每个plugin的jar文件
         for (URL pluginJar : pluginJars) {
 
+            // 获取jar文件中需要关注的java包名
             final JarFile pluginJarFile = createJarFile(pluginJar);
             final List<String> pluginPackageList = getPluginPackage(pluginJarFile);
 
+            // 创建java包过滤链，用于过滤不需要关注的类文件，这里使用了责任链模式
             final ClassNameFilter pluginFilterChain = createPluginFilterChain(pluginPackageList);
 
+            // 使用Java ServiceLoader机制获取Jar包中的ProfilerPlugin类，并实例化对象
             final List<ProfilerPlugin> original = PluginLoader.load(ProfilerPlugin.class, new URL[] { pluginJar });
 
+            // 根据pinpoint.config配置信息过滤掉不需要注册的plugin
             List<ProfilerPlugin> plugins = filterDisablePlugin(original);
 
+            // 依次遍历当前jar包中的ProfilerPlugin (一般情况下只有一个)
             for (ProfilerPlugin plugin : plugins) {
                  if (logger.isInfoEnabled()) {
                     logger.info("{} Plugin {}:{}", plugin.getClass(), PluginConfig.PINPOINT_PLUGIN_PACKAGE, pluginPackageList);
@@ -91,6 +98,9 @@ public class ProfilerPluginLoader {
                 
                 logger.info("Loading plugin:{} pluginPackage:{}", plugin.getClass().getName(), plugin);
 
+                /**
+                 * 注册plugin
+                 */
                 PluginConfig pluginConfig = new PluginConfig(pluginJar, pluginFilterChain);
                 final ClassInjector classInjector = new JarProfilerPluginClassInjector(pluginConfig, instrumentEngine);
                 final SetupResult result = pluginSetup.setupPlugin(plugin, classInjector);
@@ -149,11 +159,13 @@ public class ProfilerPluginLoader {
 
     public List<String> getPluginPackage(JarFile pluginJarFile) {
 
+        // 获取jar包中的manifest文件
         final Manifest manifest =  getManifest(pluginJarFile);
         if (manifest == null) {
             return PluginConfig.DEFAULT_PINPOINT_PLUGIN_PACKAGE_NAME;
         }
 
+        // 如果manifest文件中有指明Pinpoint-Plugin-Package则使用该值
         final Attributes attributes = manifest.getMainAttributes();
         final String pluginPackage = attributes.getValue(PluginConfig.PINPOINT_PLUGIN_PACKAGE);
         if (pluginPackage == null) {

@@ -34,32 +34,48 @@ public class PinpointBootStrap {
     private static final LoadState STATE = new LoadState();
 
 
+    /**
+     * javaagent默认启动方法
+     *
+     * @param agentArgs 传递的参数
+     * @param instrumentation JVM生成的对象，用于字节码加载拦截
+     */
     public static void premain(String agentArgs, Instrumentation instrumentation) {
+        /**
+         * 1-参数检查处理部分
+         */
         if (agentArgs == null) {
             agentArgs = "";
         }
         logger.info(ProductInfo.NAME + " agentArgs:" + agentArgs);
 
-        final boolean success = STATE.start();
+        final boolean success = STATE.start(); // 避免并发启动
         if (!success) {
             logger.warn("pinpoint-bootstrap already started. skipping agent loading.");
             return;
         }
         Map<String, String> agentArgsMap = argsToMap(agentArgs);
 
-        final ClassPathResolver classPathResolver = new AgentDirBaseClassPathResolver();
-        if (!classPathResolver.verify()) {
+
+        /**
+         * 2-BootStrap包获取
+         */
+        final ClassPathResolver classPathResolver = new AgentDirBaseClassPathResolver(); // 初始化对象
+        if (!classPathResolver.verify()) { // 检索启动需要的4个Bootstarp相关jar包
             logger.warn("Agent Directory Verify fail. skipping agent loading.");
             logPinpointAgentLoadFail();
             return;
         }
 
         BootstrapJarFile bootstrapJarFile = classPathResolver.getBootstrapJarFile();
-        appendToBootstrapClassLoader(instrumentation, bootstrapJarFile);
+        appendToBootstrapClassLoader(instrumentation, bootstrapJarFile); // 将boot目录中的jar注册到instrumentation中
 
 
+        /**
+         * 3-通过PinpointStarter引导启动
+         */
         PinpointStarter bootStrap = new PinpointStarter(agentArgsMap, bootstrapJarFile, classPathResolver, instrumentation);
-        if (!bootStrap.start()) {
+        if (!bootStrap.start()) { // 调用启动方法
             logPinpointAgentLoadFail();
         }
 

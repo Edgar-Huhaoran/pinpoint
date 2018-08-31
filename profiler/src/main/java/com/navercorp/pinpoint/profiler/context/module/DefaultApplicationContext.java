@@ -85,11 +85,25 @@ public class DefaultApplicationContext implements ApplicationContext {
         this(agentOption, interceptorRegistryBinder, moduleFactoryProvider.get());
     }
 
+    /**
+     * 初始化应用上下文
+     *
+     * @param agentOption
+     * @param interceptorRegistryBinder
+     * @param moduleFactory
+     */
     public DefaultApplicationContext(AgentOption agentOption, final InterceptorRegistryBinder interceptorRegistryBinder, ModuleFactory moduleFactory) {
+        /**
+         * 参数检查
+         */
         Assert.requireNonNull(agentOption, "agentOption must not be null");
         this.profilerConfig = Assert.requireNonNull(agentOption.getProfilerConfig(), "profilerConfig must not be null");
         Assert.requireNonNull(moduleFactory, "moduleFactory must not be null");
 
+
+        /**
+         * 对象赋值
+         */
         this.instrumentation = agentOption.getInstrumentation();
         this.serviceTypeRegistryService = agentOption.getServiceTypeRegistryService();
 
@@ -97,9 +111,15 @@ public class DefaultApplicationContext implements ApplicationContext {
             logger.info("DefaultAgent classLoader:{}", this.getClass().getClassLoader());
         }
 
+
+        /**
+         * 使用Google Guice框架完成依赖依赖注入
+         */
+        // 获取Guice的injector对象
         final Module applicationContextModule = moduleFactory.newModule(agentOption, interceptorRegistryBinder);
         this.injector = Guice.createInjector(Stage.PRODUCTION, applicationContextModule);
 
+        // 获取ASM字节码修改引擎
         this.instrumentEngine = injector.getInstance(InstrumentEngine.class);
 
         this.classFileDispatcher = injector.getInstance(ClassFileTransformerDispatcher.class);
@@ -200,6 +220,9 @@ public class DefaultApplicationContext implements ApplicationContext {
         return this.serverMetaDataRegistryService;
     }
 
+    /**
+     * 启动Agent应用上下文
+     */
     @Override
     public void start() {
         this.deadlockMonitor.start();

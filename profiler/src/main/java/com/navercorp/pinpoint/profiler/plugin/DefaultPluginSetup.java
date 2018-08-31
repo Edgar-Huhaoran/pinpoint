@@ -63,25 +63,38 @@ public class DefaultPluginSetup implements PluginSetup {
         final DefaultProfilerPluginSetupContext setupContext = new DefaultProfilerPluginSetupContext(profilerConfig);
         final GuardProfilerPluginContext guardSetupContext = new GuardProfilerPluginContext(setupContext);
 
+        /**
+         * 注入依赖对象，为plugin注册做准备工作
+         */
         final InstrumentContext instrumentContext = new PluginInstrumentContext(profilerConfig, instrumentEngine, dynamicTransformTrigger, classInjector, transformerRegistry );
         final GuardInstrumentContext guardInstrumentContext = preparePlugin(profilerPlugin, instrumentContext);
+
+
         try {
             // WARN external plugin api
             if (logger.isInfoEnabled()) {
                 logger.info("{} Plugin setup", profilerPlugin.getClass().getName());
             }
+            // 注册plugin
             profilerPlugin.setup(guardSetupContext);
         } finally {
+            // 关闭资源
             guardSetupContext.close();
             guardInstrumentContext.close();
         }
+        // 收集注册结果
         SetupResult setupResult = new SetupResult(setupContext, transformerRegistry);
         return setupResult;
     }
 
     private GuardInstrumentContext preparePlugin(ProfilerPlugin plugin, InstrumentContext instrumentContext) {
 
+        // 使用装饰者模式封装InstrumentContext，使其成为一个可关闭的InstrumentContext
         final GuardInstrumentContext guardInstrumentContext = new GuardInstrumentContext(instrumentContext);
+
+        /**
+         * 根据ProfilerPlugin实现的Aware接口类型选择需要注入的依赖
+         */
         if (plugin instanceof TransformTemplateAware) {
             if (logger.isDebugEnabled()) {
                 logger.debug("{}.setTransformTemplate", plugin.getClass().getName());

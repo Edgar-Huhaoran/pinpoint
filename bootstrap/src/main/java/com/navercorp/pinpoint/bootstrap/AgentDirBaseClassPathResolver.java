@@ -316,7 +316,7 @@ public class AgentDirBaseClassPathResolver implements ClassPathResolver {
 
     @Override
     public String getAgentPluginPath() {
-        return this.agentDirPath + File.separator + "plugin";
+        return this.agentDirPath + File.separator + "plugin"; // pinpoint-bootstrap-1.7.3.jar文件所在目录下的plugin目录
     }
 
     @Override
